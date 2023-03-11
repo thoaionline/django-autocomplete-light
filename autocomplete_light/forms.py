@@ -288,6 +288,13 @@ class ModelFormMetaclass(DjangoModelFormMetaclass):
         return new_class
 
     @classmethod
+    def _get_model_private_fields(cls, model):
+        try:
+            return model._meta.private_fields
+        except AttributeError:
+            return {}
+
+    @classmethod
     def skip_field(cls, meta, field):
         try:
             from django.contrib.contenttypes.fields import GenericRelation
@@ -325,7 +332,7 @@ class ModelFormMetaclass(DjangoModelFormMetaclass):
 
         # Using or [] because fields might be None in some django versions.
         for field in fields or []:
-            model_field = getattr(meta.model._meta.private_fields, field, None)
+            model_field = getattr(cls._get_model_private_fields(meta.model), field, None)
 
             if model_field is None:
                 model_field = getattr(meta.model, field, None)
@@ -355,7 +362,7 @@ class ModelFormMetaclass(DjangoModelFormMetaclass):
         add_exclude = []
 
         # exclude gfk content type and object id fields
-        for field in meta.model._meta.private_fields:
+        for field in cls._get_model_private_fields(meta.model):
             if cls.skip_field(meta, field):
                 continue
 
@@ -379,7 +386,7 @@ class ModelFormMetaclass(DjangoModelFormMetaclass):
         widgets = getattr(meta, 'widgets', {})
 
         # Add generic fk and m2m autocompletes
-        for field in meta.model._meta.private_fields:
+        for field in cls._get_model_private_fields(meta.model):
             if cls.skip_field(meta, field):
                 continue
 
